@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: nba-client
+      POSTGRES_USER: example
+      POSTGRES_DB: nba-stats
+    ports:
+      - "5432:5432"
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "6080:8080"
