@@ -27,6 +27,7 @@ var (
 			insert into games values ( $1, $2, $3 )
 			ON CONFLICT (id) DO UPDATE SET (data, date) =
 			(excluded.data, excluded.date);`
+	getAllGameIdsSql = `select id from games`
 
 	createPlayerSql = `create table if not exists players (
 				id int not null,
@@ -44,6 +45,7 @@ var (
 		select id, name, pos, team, games from players where id=$1;`
 	getPlayerGamesSql = `
 		select games from players where id=$1`
+	getAllPlayerIdsSql = `select id from players`
 
 	tables = []string{createApiKeySql, createGameSql, createPlayerSql}
 )

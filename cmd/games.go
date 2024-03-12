@@ -1,6 +1,3 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
@@ -8,8 +5,9 @@ import (
 	"sync"
 
 	"github.com/rajwalgautam/nba-client/pkg/balldontlie"
-	"github.com/rajwalgautam/nba-client/pkg/statsprocessor"
+	"github.com/rajwalgautam/nba-client/pkg/controller"
 	"github.com/spf13/cobra"
+	"go.uber.org/ratelimit"
 )
 
 // gamesCmd represents the games command
@@ -21,33 +19,34 @@ var gamesCmd = &cobra.Command{
 }
 
 func games(cmd *cobra.Command, args []string) {
-	sp, err := statsprocessor.New()
+	sp, err := controller.New()
 	if err != nil {
-		fmt.Println("statsprocessor error:", err)
+		fmt.Println("controller error:", err)
 		return
 	}
 
+	queue := make(chan balldontlie.Game, 0)
 	var wg sync.WaitGroup
+	rl := ratelimit.New(100)
 
 	save := func(g balldontlie.Game) {
+		defer wg.Done()
+		defer rl.Take()
 		err := sp.Datastore.SetGame(g)
 		if err != nil {
 			fmt.Println("save error:", err)
 		}
-		gameStats, err := sp.Api.StatsByGameId(g.Id)
-		if err != nil {
-			fmt.Printf("get game stats error (%svs%s %s): %s\n", g.AwayTeam.Abbr, g.HomeTeam.Abbr, g.Date, err)
-			wg.Done()
-			return
-		}
-		err = sp.Datastore.BulkSetStats(gameStats)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		wg.Done()
 	}
+
+	process := func() {
+		for qe := range queue {
+			err := sp.Datastore.SetGame(qe)
+			if err != nil {
+				fmt.Println("save error:", err)
+			}
+		}
+	}
+	go process()
 
 	date, set := getFlag(cmd, "date")
 	if set {
@@ -80,20 +79,14 @@ func games(cmd *cobra.Command, args []string) {
 			fmt.Println("no games")
 			return
 		}
-		wg.Add(len(games))
+
 		for _, g := range games {
-			go save(g)
+			queue <- g
 		}
-		wg.Wait()
 		fmt.Printf("saved %d games\n", len(games))
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(gamesCmd)
-
-	gamesCmd.PersistentFlags().StringP("date", "d", "", "get nba games at date")
-	gamesCmd.PersistentFlags().StringP("start", "s", "", "start date for nba games, 'end' must also be set")
-	gamesCmd.PersistentFlags().StringP("end", "e", "", "end date for nba games, 'start' must also be set")
-
 }

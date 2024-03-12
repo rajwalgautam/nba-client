@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/gofrs/uuid"
@@ -18,6 +19,9 @@ type DB interface {
 	SetGame(g balldontlie.Game) error
 	SetApiKey(k string) error
 	ApiKey() (string, error)
+	GetPlayer(id int) (balldontlie.Player, error)
+	GameIds() ([]int, error)
+	PlayerIds() ([]int, error)
 }
 
 type nbaDB struct {
@@ -35,6 +39,30 @@ func New() (DB, error) {
 	return &nbaDB{pgdb: db, ppm: make(perPlayerMutex)}, err
 }
 
+func (n *nbaDB) GameIds() ([]int, error) {
+	return n.idsByTable(getAllGameIdsSql)
+}
+
+func (n *nbaDB) PlayerIds() ([]int, error) {
+	return n.idsByTable(getAllPlayerIdsSql)
+}
+
+func (n *nbaDB) idsByTable(sql string) ([]int, error) {
+	rows, err := n.pgdb.Query(sql)
+	if err != nil {
+		return nil, nil
+	}
+	var ids []int
+	for rows.Next() {
+		var id int
+		rows.Scan(&id)
+		if id != 0 {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
 func (n *nbaDB) BulkSetStats(stats []balldontlie.Stats) error {
 	var me error
 	for _, s := range stats {
@@ -49,7 +77,7 @@ func (n *nbaDB) BulkSetStats(stats []balldontlie.Stats) error {
 func (n *nbaDB) SetPlayerStats(s balldontlie.Stats) error {
 	n.ppm.Lock(s.Player.Id)
 	defer n.ppm.Unlock(s.Player.Id)
-	gs, err := n.gameStatsByPlayerId(s.Player.Id)
+	gs, err := n.GameStatsByPlayerId(s.Player.Id)
 	if err != nil {
 		return err
 	}
@@ -72,7 +100,37 @@ func (n *nbaDB) SetPlayerStats(s balldontlie.Stats) error {
 	return err
 }
 
-func (n *nbaDB) gameStatsByPlayerId(id int) ([]balldontlie.PlayerStats, error) {
+func (n *nbaDB) GetPlayer(id int) (balldontlie.Player, error) {
+	rows, err := n.pgdb.Query(getPlayerSql, id)
+	if err != nil {
+		return balldontlie.Player{}, nil
+	}
+	var name, pos, team string
+	var b []byte
+	var games []balldontlie.PlayerStats
+	for rows.Next() {
+		err = rows.Scan(&id, &name, &pos, &team, &b)
+		if err != nil {
+			return balldontlie.Player{}, err
+		}
+		if b != nil {
+			err = json.Unmarshal(b, &games)
+			if err != nil {
+				return balldontlie.Player{}, nil
+			}
+		}
+	}
+	return balldontlie.Player{
+		Id:       id,
+		First:    strings.Split(name, " ")[0],
+		Last:     strings.Split(name, " ")[1],
+		Position: pos,
+		Team:     team,
+		Games:    games,
+	}, nil
+}
+
+func (n *nbaDB) GameStatsByPlayerId(id int) ([]balldontlie.PlayerStats, error) {
 	rows, err := n.pgdb.Query(getPlayerGamesSql, id)
 	if err != nil {
 		return nil, nil

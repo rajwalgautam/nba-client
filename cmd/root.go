@@ -38,4 +38,8 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	gamesCmd.PersistentFlags().StringP("date", "d", "", "get nba games at date")
+	gamesCmd.PersistentFlags().StringP("start", "s", "", "start date for nba games, 'end' must also be set")
+	gamesCmd.PersistentFlags().StringP("end", "e", "", "end date for nba games, 'start' must also be set")
 }

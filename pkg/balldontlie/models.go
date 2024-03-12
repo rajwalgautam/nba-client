@@ -75,3 +75,16 @@ type PlayerStats struct {
 	Blocks   int    `json:"blk"`
 	Date     string `json:"date"`
 }
+
+func (ps PlayerStats) Sixty() (int, bool) {
+	sum := ps.Points + ps.Rebounds + ps.Assists + ps.Steals + ps.Blocks
+	return sum, sum > 60
+}
+
+type metadataWrapper struct {
+	Metadata `json:"meta"`
+}
+
+type Metadata struct {
+	NextCursor int `json:"next_cursor"`
+}

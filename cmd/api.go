@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/rajwalgautam/nba-client/pkg/controller"
 	"github.com/rajwalgautam/nba-client/pkg/db"
-	"github.com/rajwalgautam/nba-client/pkg/statsprocessor"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ func api(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	sp, err := statsprocessor.New()
+	sp, err := controller.New()
 	if err != nil {
 		fmt.Println("stats processor error:", err)
 	}

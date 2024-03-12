@@ -7,10 +7,12 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/lib/pq v1.10.9
 	github.com/spf13/cobra v1.8.0
+	go.uber.org/ratelimit v0.3.1
 	gorm.io/driver/postgres v1.5.6
 )
 
 require (
+	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

@@ -1,4 +1,4 @@
-package statsprocessor
+package controller
 
 import (
 	"github.com/rajwalgautam/nba-client/pkg/balldontlie"
@@ -8,6 +8,14 @@ import (
 type Processor struct {
 	Datastore db.DB
 	Api       balldontlie.Client
+}
+
+func New() (*Processor, error) {
+	d, err := db.New()
+	if err != nil {
+		return nil, err
+	}
+	return NewWithDB(d)
 }
 
 func NewWithDB(d db.DB) (*Processor, error) {
@@ -23,12 +31,4 @@ func NewWithDB(d db.DB) (*Processor, error) {
 		Datastore: d,
 		Api:       bdl,
 	}, nil
-}
-
-func New() (*Processor, error) {
-	d, err := db.New()
-	if err != nil {
-		return nil, err
-	}
-	return NewWithDB(d)
 }
